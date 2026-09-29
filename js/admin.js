@@ -187,10 +187,7 @@
       tr.querySelector(".item-category").textContent = categoryLabel(item.category);
       tr.querySelector(".item-price").textContent = formatPrice(item.price);
 
-      var toggle = tr.querySelector(".toggle-btn");
-      var toggleLabel = (item.active ? "Hide " : "Show ") + item.name + (item.active ? " from" : " on") + " the menu";
-      toggle.setAttribute("aria-label", toggleLabel);
-      toggle.title = item.active ? "Active — click to hide from menu" : "Hidden — click to show on menu";
+      tr.querySelector(".toggle-btn").setAttribute("aria-label", "Show " + item.name + " on the menu");
       tr.querySelector(".edit-btn").setAttribute("aria-label", "Edit " + item.name);
 
       els.tbody.appendChild(tr);
@@ -294,13 +291,8 @@
     return ok;
   }
 
-  var statusTimer = null;
   function flash(message) {
     els.status.textContent = message;
-    window.clearTimeout(statusTimer);
-    statusTimer = window.setTimeout(function () {
-      els.status.textContent = "";
-    }, 2500);
   }
 
   function select(id) {

@@ -3,13 +3,11 @@
   "use strict";
 
   var store = window.SathiStore;
-  var desktopQuery = window.matchMedia("(min-width: 641px)");
 
   var state = {
     category: "all", // "all" or a category id
     filter: null, // sub-category name, or (under "all") a category id / "popular"
     query: "",
-    searchMode: false, // desktop: search box focused with nothing typed yet
   };
 
   var els = {
@@ -44,10 +42,6 @@
     return haystack.indexOf(query) !== -1;
   }
 
-  function isSearching() {
-    return state.query !== "" || state.searchMode;
-  }
-
   function currentItems() {
     var items = visibleItems();
 
@@ -57,7 +51,6 @@
         return matchesQuery(item, q);
       });
     }
-    if (state.searchMode) return items;
 
     if (state.category === "all") {
       if (state.filter === "popular") {
@@ -76,7 +69,7 @@
   /* ---------- Rendering ---------- */
 
   function renderChips() {
-    var searching = isSearching() && desktopQuery.matches;
+    var searching = state.query !== "";
     var chips = [{ id: "all", label: "All", shortLabel: "All" }].concat(store.categories);
 
     els.chips.textContent = "";
@@ -175,10 +168,6 @@
         mobile: plural(count, "item") + " found",
       };
     }
-    if (state.searchMode) {
-      return { desktop: "Search across all categories", mobile: plural(count, "item") + " available" };
-    }
-
     var desktop;
     if (state.category === "all") {
       desktop = state.filter === "popular" ? plural(count, "popular item") : plural(count, "item") + " available";
@@ -214,7 +203,6 @@
     var items = currentItems();
     var t = titles(items.length);
 
-    els.body.classList.toggle("is-searching", isSearching());
     els.body.classList.toggle("has-query", state.query !== "");
     els.titleDesktop.textContent = t.desktop;
     els.titleMobile.textContent = t.mobile;
@@ -228,7 +216,6 @@
 
   function clearSearch() {
     state.query = "";
-    state.searchMode = false;
     els.input.value = "";
   }
 
@@ -236,7 +223,6 @@
     var chip = event.target.closest(".chip");
     if (!chip) return;
     clearSearch();
-    els.input.blur();
     state.category = chip.dataset.category;
     state.filter = null;
     render();
@@ -262,52 +248,15 @@
     render();
   });
 
-  els.input.addEventListener("focus", function () {
-    if (desktopQuery.matches) {
-      els.input.placeholder = "Type to search...";
-      state.searchMode = true;
-      render();
-    }
-  });
-
-  els.input.addEventListener("blur", function () {
-    syncPlaceholder();
-    if (state.searchMode && !state.query) {
-      state.searchMode = false;
-      render();
-    }
-  });
-
-  els.input.addEventListener("keydown", function (event) {
-    if (event.key === "Escape") {
-      clearSearch();
-      els.body.classList.remove("is-mobile-search");
-      els.input.blur();
-      render();
-    }
-  });
-
+  // Phone: the search button swaps the header for the search box.
   els.toggle.addEventListener("click", function () {
     els.body.classList.add("is-mobile-search");
-    els.input.placeholder = "Search menu...";
     els.input.focus();
   });
 
   els.close.addEventListener("click", function () {
     clearSearch();
     els.body.classList.remove("is-mobile-search");
-    render();
-  });
-
-  function syncPlaceholder() {
-    if (desktopQuery.matches) {
-      els.body.classList.remove("is-mobile-search");
-      els.input.placeholder = "Search dishes, ingredients...";
-    }
-  }
-
-  desktopQuery.addEventListener("change", function () {
-    syncPlaceholder();
     render();
   });
 

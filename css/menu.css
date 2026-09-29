@@ -71,10 +71,6 @@
   color: var(--text-placeholder);
 }
 
-.search input::-webkit-search-cancel-button {
-  cursor: pointer;
-}
-
 .search-close,
 .search-toggle {
   display: none;
@@ -93,10 +89,6 @@
 .settings-link svg {
   width: 34px;
   height: 34px;
-}
-
-.settings-link:hover {
-  background: #f4f4f2;
 }
 
 /* ---------- Page layout ---------- */
@@ -150,10 +142,6 @@
   font-size: 14px;
   line-height: 1.5;
   color: var(--text);
-}
-
-.subnav-item:hover {
-  background: #f4f1ea;
 }
 
 .subnav-item.is-active {
@@ -261,8 +249,8 @@
   color: var(--text-muted);
 }
 
-/* Desktop search mode: no sub-category panel */
-.is-searching .subnav {
+/* While searching, hide the sub-category panel */
+.has-query .subnav {
   display: none;
 }
 

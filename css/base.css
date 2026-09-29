@@ -107,8 +107,13 @@ h3 {
   white-space: nowrap;
 }
 
-.chip:hover {
-  border-color: #b8b8b8;
+/* Shared hover feedback for everything clickable */
+.chip:hover,
+.btn:hover,
+.icon-btn:hover,
+.subnav-item:hover,
+.settings-link:hover {
+  filter: brightness(0.94);
 }
 
 .chip.is-active {

@@ -133,11 +133,7 @@
   }
 
   function save(items) {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-    } catch (err) {
-      // Private mode / blocked storage: changes last for this page view only.
-    }
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }
 
   var items = load();

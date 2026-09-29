@@ -25,16 +25,8 @@
   background: var(--accent);
 }
 
-.btn-accent:hover {
-  background: #a23b1a;
-}
-
 .btn-danger {
   background: var(--danger);
-}
-
-.btn-danger:hover {
-  background: #8c0303;
 }
 
 .btn-light {
@@ -46,18 +38,9 @@
   cursor: pointer;
 }
 
-.btn-light:hover {
-  background: var(--bg);
-}
-
 .btn-light:disabled {
   opacity: 0.45;
   cursor: default;
-}
-
-.btn-light:focus-within {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
 }
 
 .btn-outline,
@@ -74,17 +57,9 @@
   color: var(--ink);
 }
 
-.btn-outline:hover {
-  background: #faf7f0;
-}
-
 .btn-primary {
   background: var(--ink);
   color: #fff;
-}
-
-.btn-primary:hover {
-  background: #173f3f;
 }
 
 .btn-danger-strong {
@@ -93,10 +68,7 @@
   color: #fff;
 }
 
-.btn-danger-strong:hover {
-  background: #b80017;
-}
-
+.btn-light:focus-within,
 .btn:focus-visible,
 .chip:focus-visible,
 .icon-btn:focus-visible {
@@ -175,11 +147,6 @@
   font-size: 20px;
   font-weight: 700;
   color: #000;
-}
-
-.login-button:hover {
-  background: #000;
-  color: #fff;
 }
 
 .login-back {
@@ -271,11 +238,6 @@
   text-decoration: none;
 }
 
-.sidebar-link:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.06);
-}
-
 .sidebar-link.is-active {
   background: var(--sidebar-active);
   color: #fff;
@@ -333,11 +295,6 @@
   border-radius: var(--radius-sm);
   background: transparent;
   color: rgba(255, 255, 255, 0.8);
-}
-
-.sidebar-logout:hover {
-  border-color: #fff;
-  color: #fff;
 }
 
 .admin-main {
@@ -481,10 +438,6 @@
   color: inherit;
 }
 
-.sort-btn:hover {
-  color: var(--ink);
-}
-
 th[aria-sort="ascending"] .sort-btn::after {
   content: " ▲";
 }
@@ -516,10 +469,6 @@ th[aria-sort="descending"] .sort-btn::after {
 
 .items-table tbody tr {
   cursor: pointer;
-}
-
-.items-table tbody tr:hover {
-  background: #fbfaf6;
 }
 
 .items-table tbody tr.is-selected {
@@ -637,10 +586,6 @@ th[aria-sort="descending"] .sort-btn::after {
   border-radius: var(--radius-sm);
   background: transparent;
   color: #3f3f46;
-}
-
-.icon-btn:hover {
-  background: #eeeae0;
 }
 
 .toggle-dot {
@@ -991,23 +936,5 @@ th[aria-sort="descending"] .sort-btn::after {
 
   .panel {
     padding: 16px;
-  }
-
-  .modal-body {
-    padding: 28px 20px 20px;
-  }
-
-  .modal-title {
-    font-size: 24px;
-  }
-
-  .modal-text,
-  .modal-item {
-    font-size: 17px;
-  }
-
-  .btn-lg {
-    height: 48px;
-    font-size: 17px;
   }
 }
