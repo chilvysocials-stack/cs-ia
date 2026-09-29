@@ -1,0 +1,146 @@
+/* Sathi Café — shared design tokens (from the Figma wireframe) */
+:root {
+  --bg: #faf7f0;
+  --surface: #ffffff;
+  --border: #ece4d2;
+  --border-input: #d4d4d8;
+  --ink: #0e2a2a;
+  --ink-strong: #27272a;
+  --text: #3f3f46;
+  --text-body: #52525b;
+  --text-muted: #71717a;
+  --text-placeholder: #a1a1aa;
+  --price: #a33d1a;
+  --accent: #ba4520;
+  --danger: #ab0404;
+  --danger-strong: #d9001b;
+  --chip-bg: #faffff;
+  --chip-border: #e0e0e0;
+  --highlight: #dceded;
+  --row-selected: #f0f7f7;
+  --sidebar-active: #143838;
+  --ok-bg: #dcfce7;
+  --ok-text: #15803d;
+  --bad-bg: #fee2e2;
+  --bad-text: #b91c1c;
+  --veg: #15803d;
+  --nonveg: #b91c1c;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+p,
+h1,
+h2,
+h3 {
+  margin: 0;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+}
+
+/* Category chips (customer menu + admin) */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border: 1px solid var(--chip-border);
+  border-radius: var(--radius-pill);
+  background: var(--chip-bg);
+  color: #000;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: #b8b8b8;
+}
+
+.chip.is-active {
+  background: #000;
+  border-color: #000;
+  color: #fff;
+}
+
+/* Veg / non-veg marker used on menu cards */
+.food-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid currentColor;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.food-mark::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.food-mark--veg {
+  color: var(--veg);
+}
+
+.food-mark--nonveg {
+  color: var(--nonveg);
+}
