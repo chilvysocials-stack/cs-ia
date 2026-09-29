@@ -260,5 +260,11 @@
     render();
   });
 
-  render();
+  store
+    .load()
+    .then(render)
+    .catch(function (err) {
+      els.empty.textContent = err.message;
+      els.empty.hidden = false;
+    });
 })();

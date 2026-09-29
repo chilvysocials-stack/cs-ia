@@ -69,13 +69,12 @@
 
   /* ---------- Session ---------- */
 
-  var username = SathiAuth.user();
-  els.adminName.textContent = username;
-  els.adminAvatar.textContent = username.charAt(0);
-
-  els.logout.addEventListener("click", function () {
-    SathiAuth.logout();
-    window.location.href = "login.html";
+  els.logout.addEventListener("click", async function () {
+    try {
+      await SathiAuth.logout();
+    } finally {
+      window.location.href = "login.html";
+    }
   });
 
   /* ---------- Filters ---------- */
@@ -291,8 +290,22 @@
     return ok;
   }
 
-  function flash(message) {
+  function flash(message, isError) {
     els.status.textContent = message;
+    els.status.classList.toggle("is-error", Boolean(isError));
+  }
+
+  // Run a change on the server. Shows `message` on success or the server's
+  // error on failure, and returns whether it worked.
+  async function save(task, message) {
+    try {
+      await task();
+      flash(message);
+      return true;
+    } catch (err) {
+      flash(err.message, true);
+      return false;
+    }
   }
 
   function select(id) {
@@ -323,14 +336,17 @@
     renderTable();
   });
 
-  els.tbody.addEventListener("click", function (event) {
+  els.tbody.addEventListener("click", async function (event) {
     var row = event.target.closest("tr");
     if (!row) return;
     var id = Number(row.dataset.id);
 
     if (event.target.closest(".toggle-btn")) {
       var item = store.get(id);
-      store.update(id, { active: !item.active });
+      var message = item.name + (item.active ? " hidden from" : " shown on") + " the menu.";
+      if (!(await save(function () {
+        return store.update(id, { active: !item.active });
+      }, message))) return;
       renderTable();
       if (id === state.selectedId && !state.isNew) fields.active.checked = store.get(id).active;
       return;
@@ -353,22 +369,26 @@
     renderEditor();
   });
 
-  els.form.addEventListener("submit", function (event) {
+  els.form.addEventListener("submit", async function (event) {
     event.preventDefault();
     var data = readForm();
     if (!validate(data)) return;
 
-    if (state.isNew) {
-      var created = store.create(data);
-      state.isNew = false;
-      state.selectedId = created.id;
-      flash("Item added to the menu.");
-    } else {
-      store.update(state.selectedId, data);
-      flash("Changes saved.");
+    var saved = state.isNew
+      ? await save(async function () {
+          var created = await store.create(data);
+          state.isNew = false;
+          state.selectedId = created.id;
+        }, "Item added to the menu.")
+      : await save(function () {
+          return store.update(state.selectedId, data);
+        }, "Changes saved.");
+
+    // On failure keep what the admin typed so they can fix it.
+    if (saved) {
+      renderTable();
+      renderEditor();
     }
-    renderTable();
-    renderEditor();
   });
 
   els.deleteItem.addEventListener("click", function () {
@@ -379,20 +399,20 @@
     els.dialog.showModal();
   });
 
-  els.dialog.addEventListener("close", function () {
+  els.dialog.addEventListener("close", async function () {
     if (els.dialog.returnValue !== "confirm") return;
 
-    var visible = filteredItems();
-    var index = visible.findIndex(function (item) {
-      return item.id === state.selectedId;
+    var id = state.selectedId;
+    var index = filteredItems().findIndex(function (item) {
+      return item.id === id;
     });
-    var name = store.get(state.selectedId).name;
-    store.remove(state.selectedId);
+    if (!(await save(function () {
+      return store.remove(id);
+    }, store.get(id).name + " deleted."))) return;
 
     var remaining = filteredItems();
     var next = remaining[Math.min(index, remaining.length - 1)];
     select(next ? next.id : null);
-    flash(name + " deleted.");
   });
 
   // Clicking a column header sorts by it; clicking it again flips the order.
@@ -407,13 +427,14 @@
 
   /* ---------- Undo ---------- */
 
-  els.undo.addEventListener("click", function () {
-    if (!store.undo()) return;
+  els.undo.addEventListener("click", async function () {
+    if (!(await save(function () {
+      return store.undo();
+    }, "Last change undone."))) return;
     if (!store.get(state.selectedId)) state.selectedId = store.all().length ? store.all()[0].id : null;
     state.isNew = false;
     renderTable();
     renderEditor();
-    flash("Last change undone.");
   });
 
   /* ---------- CSV export / import ---------- */
@@ -506,18 +527,34 @@
     }
     if (!window.confirm("Replace the whole menu with " + result.items.length + " items from " + file.name + "?")) return;
 
-    store.replaceAll(result.items);
+    if (!(await save(function () {
+      return store.replaceAll(result.items);
+    }, "Imported " + result.items.length + " items. Use Undo to go back."))) return;
     state.selectedId = store.all()[0].id;
     state.isNew = false;
     renderTable();
     renderEditor();
-    flash("Imported " + result.items.length + " items. Use Undo to go back.");
   });
 
   /* ---------- Start ---------- */
 
-  fillCategoryOptions();
-  var first = store.all()[0];
-  state.selectedId = first ? first.id : null;
-  render();
+  (async function start() {
+    fillCategoryOptions();
+    try {
+      var username = await SathiAuth.me();
+      if (!username) {
+        window.location.replace("login.html");
+        return;
+      }
+      els.adminName.textContent = username;
+      els.adminAvatar.textContent = username.charAt(0);
+      await store.load(true);
+    } catch (err) {
+      els.tableEmpty.textContent = err.message;
+    }
+    var first = store.all()[0];
+    state.selectedId = first ? first.id : null;
+    render();
+    document.body.hidden = false; // hidden until we know the admin is logged in
+  })();
 })();

@@ -53,6 +53,11 @@ body {
   min-height: 100vh;
 }
 
+/* `hidden` must win over classes that set display (e.g. display: flex). */
+[hidden] {
+  display: none !important;
+}
+
 button,
 input,
 select,

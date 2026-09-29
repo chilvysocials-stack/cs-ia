@@ -777,6 +777,10 @@ th[aria-sort="descending"] .sort-btn::after {
   color: var(--ok-text);
 }
 
+.editor-status.is-error {
+  color: var(--bad-text);
+}
+
 /* ---------- Delete dialog ---------- */
 .modal {
   width: min(640px, calc(100vw - 32px));

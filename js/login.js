@@ -1,12 +1,6 @@
 /* Admin login form. */
-(function () {
+(async function () {
   "use strict";
-
-  // Already logged in (e.g. coming back from the customer menu): skip the form.
-  if (SathiAuth.user()) {
-    window.location.replace("index.html");
-    return;
-  }
 
   var form = document.getElementById("login-form");
   var error = document.getElementById("login-error");
@@ -14,6 +8,16 @@
   function showError(message) {
     error.textContent = message;
     error.hidden = false;
+  }
+
+  // Already logged in (e.g. coming back from the customer menu): skip the form.
+  try {
+    if (await SathiAuth.me()) {
+      window.location.replace("index.html");
+      return;
+    }
+  } catch (err) {
+    showError(err.message);
   }
 
   form.addEventListener("submit", async function (event) {
@@ -25,12 +29,13 @@
       showError("Enter both your username and password.");
       return;
     }
-    if (!(await SathiAuth.login(username, password))) {
-      showError("Incorrect username or password.");
+    try {
+      await SathiAuth.login(username, password);
+      window.location.href = "index.html";
+    } catch (err) {
+      showError(err.message);
       form.password.value = "";
       form.password.focus();
-      return;
     }
-    window.location.href = "index.html";
   });
 })();

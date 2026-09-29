@@ -1,15 +1,13 @@
 /*
- * Sathi Café — menu data store.
- *
- * Front-end only: the menu lives in localStorage so changes made in the
- * admin panel show up on the customer menu in the same browser. In the full
- * system this file is the part that would be replaced by calls to the
- * MySQL-backed API.
+ * Sathi Café — menu data, loaded from and saved to the MySQL database
+ * through api/api.php. Reads come from a local copy (`items`); every change
+ * is sent to the server and the copy is then reloaded.
  */
 (function () {
   "use strict";
 
-  var STORAGE_KEY = "sathi-cafe-menu-v1";
+  // api/api.php, worked out from where this script lives (works from / and /admin/).
+  var API = new URL("../api/api.php", document.currentScript.src).href;
 
   var CATEGORIES = [
     {
@@ -54,112 +52,50 @@
     },
   ];
 
-  // [name, description, price, category, subcategory, type, popular]
-  var SEED = [
-    ["Lassi", "Thick chilled yogurt drink, sweet or salted", 950, "drinks", "Lassi", "veg", true],
-    ["Masala Chai", "Spiced tea with ginger, cardamom and cloves", 250, "drinks", "Hot Beverage", "veg", true],
-    ["Mango Smoothie", "Fresh mango blended with milk and honey", 750, "drinks", "Smoothies", "veg"],
-    ["Iced Americano", "Double-shot espresso poured over ice", 350, "drinks", "Iced Coffee", "veg"],
-    ["Fresh Lime Soda", "Refreshing lime soda, sweet or salted", 300, "drinks", "Refreshers", "veg"],
-    ["Hot Chocolate", "Rich cocoa with steamed milk and cream", 400, "drinks", "Hot Beverage", "veg"],
-    ["Banana Shake", "Creamy banana shake with vanilla ice cream", 550, "drinks", "Thick Shakes", "veg"],
-    ["Mint Refresher", "Fresh mint cooler with lime and soda water", 350, "drinks", "Refreshers", "veg"],
-
-    ["Aloo Paratha", "Stuffed flatbread with spiced potato filling", 450, "breakfast", "Parathas", "veg", true],
-    ["Egg Benedict", "Poached eggs on toast with hollandaise sauce", 650, "breakfast", "Eggs", "nonveg"],
-    ["Pancake Stack", "Fluffy pancakes with maple syrup and butter", 500, "breakfast", "Pancakes", "veg", true],
-    ["French Toast", "Golden toast with cinnamon and fresh berries", 400, "breakfast", "Toast", "nonveg"],
-    ["Nepali Breakfast", "Dal bhat with pickles and seasonal greens", 350, "breakfast", "Nepali", "veg"],
-    ["Omelette Platter", "Three-egg omelette with cheese and herbs", 400, "breakfast", "Eggs", "nonveg"],
-    ["Granola Bowl", "Crunchy granola with yogurt and fresh fruits", 500, "breakfast", "Continental", "veg"],
-    ["Croissant Plate", "Butter croissant with jam and cream cheese", 350, "breakfast", "Continental", "veg"],
-
-    ["Chicken Momo", "Steamed dumplings with spiced chicken filling", 550, "momo", "Chicken Momo", "nonveg", true],
-    ["Veg Momo", "Steamed dumplings with mixed vegetable filling", 450, "momo", "Veg Momo", "veg"],
-    ["Jhol Momo", "Dumplings in spicy sesame-tomato soup broth", 600, "momo", "Jhol Momo", "nonveg"],
-    ["Chow Mein", "Stir-fried noodles with vegetables and soy sauce", 400, "momo", "Chow Mein", "veg", true],
-    ["Thukpa", "Tibetan noodle soup with vegetables and spices", 500, "momo", "Thukpa", "veg"],
-    ["Pan Fried Momo", "Crispy fried dumplings with tangy dipping sauce", 600, "momo", "Pan Fried", "nonveg"],
-    ["Buff Momo", "Traditional buffalo meat steamed dumplings", 500, "momo", "Buff Momo", "nonveg"],
-    ["Chili Momo", "Spicy stir-fried momo with bell peppers", 550, "momo", "Pan Fried", "nonveg"],
-
-    ["Grilled Chicken", "Marinated chicken grilled over charcoal fire", 850, "mains", "Chicken", "nonveg", true],
-    ["Mutton Curry", "Slow-cooked mutton in aromatic Nepali spices", 950, "mains", "Mutton", "nonveg"],
-    ["Fish Fry", "Crispy fried river fish with tartar sauce", 750, "mains", "Fish", "nonveg"],
-    ["Dal Bhat Set", "Traditional Nepali thali with all the fixings", 550, "mains", "Dal", "veg"],
-    ["Paneer Tikka", "Grilled cottage cheese with mint chutney", 600, "mains", "Vegetarian", "veg"],
-    ["Chicken Biryani", "Fragrant rice with tender spiced chicken", 700, "mains", "Rice", "nonveg"],
-    ["Mushroom Curry", "Wild mushrooms in creamy aromatic gravy", 500, "mains", "Vegetarian", "veg"],
-    ["Lamb Chops", "Herb-crusted lamb chops with seasonal sides", 1100, "mains", "Mutton", "nonveg"],
-
-    ["Sathi Thali", "Chef's special platter with dal, rice, and sides", 1200, "special", "Chef's Pick", "veg", true],
-    ["Himalayan Trout", "Fresh river trout with herb butter sauce", 1100, "special", "Seasonal", "nonveg"],
-    ["Sekuwa Platter", "Nepali-style BBQ with assorted three meats", 1300, "special", "Signature", "nonveg"],
-    ["Royal Biryani", "Premium saffron biryani with tender lamb", 1000, "special", "House Special", "nonveg"],
-    ["Newari Feast", "Traditional Newari delicacy sampler platter", 1500, "special", "Weekend", "nonveg"],
-    ["Garden Bowl", "Seasonal vegetables with quinoa and dressing", 650, "special", "Seasonal", "veg"],
-    ["Tandoori Grill", "Assorted tandoori meats with paneer tikka", 1200, "special", "Signature", "nonveg"],
-    ["Dessert Trio", "Three signature desserts of the day by chef", 550, "special", "New", "veg"],
-  ];
-
-  function seedItems() {
-    return SEED.map(function (row, index) {
-      return {
-        id: index + 1,
-        name: row[0],
-        description: row[1],
-        price: row[2],
-        category: row[3],
-        subcategory: row[4],
-        type: row[5],
-        popular: Boolean(row[6]),
-        inStock: true,
-        active: true,
-      };
-    });
-  }
-
-  function load() {
+  // Call the server: GET for reads, POST with a JSON body for changes.
+  async function api(action, body) {
+    var options = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+    var response, data;
     try {
-      var raw = window.localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        var parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) return parsed;
-      }
+      response = await fetch(API + "?action=" + action, options);
+      data = await response.json();
     } catch (err) {
-      // Storage unavailable or corrupt: fall back to the seed menu.
+      throw new Error("Can't reach the server. Is XAMPP (Apache and MySQL) running?");
     }
-    return seedItems();
+    if (!response.ok) throw new Error(data.error);
+    return data;
   }
 
-  function save(items) {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
-  }
-
-  var items = load();
+  var items = [];
+  var loadAction = "list"; // "all" in the admin panel, which also sees hidden items
 
   // Undo history: a stack of earlier versions of the menu (newest on top).
   var history = [];
   var HISTORY_LIMIT = 20;
 
-  function remember() {
-    history.push(JSON.stringify(items));
+  // Send one change, remember the menu as it was before, then reload it.
+  async function change(action, body) {
+    var before = items;
+    var result = await api(action, body);
+    history.push(before);
     if (history.length > HISTORY_LIMIT) history.shift(); // drop the oldest
-  }
-
-  function nextId() {
-    return items.reduce(function (max, item) {
-      return Math.max(max, item.id);
-    }, 0) + 1;
+    items = await api(loadAction);
+    return result;
   }
 
   window.SathiStore = {
+    api: api,
     categories: CATEGORIES,
 
     getCategory: function (id) {
       return CATEGORIES.find(function (c) {
         return c.id === id;
       });
+    },
+
+    load: async function (includeHidden) {
+      loadAction = includeHidden ? "all" : "list";
+      items = await api(loadAction);
     },
 
     all: function () {
@@ -173,47 +109,31 @@
     },
 
     create: function (data) {
-      remember();
-      var item = Object.assign({ id: nextId(), popular: false, subcategory: "" }, data);
-      items.push(item);
-      save(items);
-      return item;
+      return change("create", data); // resolves to { id }
     },
 
     update: function (id, changes) {
-      var item = this.get(id);
-      if (!item) return null;
-      remember();
-      Object.assign(item, changes);
-      save(items);
-      return item;
+      return change("update", Object.assign({}, this.get(id), changes));
     },
 
     remove: function (id) {
-      remember();
-      items = items.filter(function (item) {
-        return item.id !== id;
-      });
-      save(items);
+      return change("delete", { id: id });
     },
 
-    // Replace the whole menu (CSV import). New ids are given out in order.
+    // Replace the whole menu (CSV import).
     replaceAll: function (newItems) {
-      remember();
-      items = newItems.map(function (item, index) {
-        return Object.assign({}, item, { id: index + 1 });
-      });
-      save(items);
+      return change("replace", { items: newItems });
     },
 
     canUndo: function () {
       return history.length > 0;
     },
 
-    undo: function () {
+    undo: async function () {
       if (!history.length) return false;
-      items = JSON.parse(history.pop());
-      save(items);
+      await api("replace", { items: history[history.length - 1] });
+      history.pop(); // only forget it once the server has restored it
+      items = await api(loadAction);
       return true;
     },
   };
