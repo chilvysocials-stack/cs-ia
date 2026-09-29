@@ -37,6 +37,29 @@
   background: #8c0303;
 }
 
+.btn-light {
+  padding: 8px 14px;
+  background: var(--surface);
+  border-color: var(--border);
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.btn-light:hover {
+  background: var(--bg);
+}
+
+.btn-light:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.btn-light:focus-within {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .btn-outline,
 .btn-primary {
   flex: 1;
@@ -159,14 +182,8 @@
   color: #fff;
 }
 
-.login-hint {
-  margin-top: 28px;
-  font-size: 13px;
-  color: var(--text-muted);
-}
-
 .login-back {
-  margin-top: 8px;
+  margin-top: 28px;
   font-size: 13px;
   color: var(--ink);
 }
@@ -342,6 +359,7 @@
 
 .admin-title {
   flex: 1;
+  min-width: 0;
   font-size: 24px;
   font-weight: 700;
   line-height: 1.25;
@@ -452,6 +470,27 @@
   letter-spacing: 1.4px;
   text-align: left;
   color: var(--text-muted);
+}
+
+.sort-btn {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  color: inherit;
+}
+
+.sort-btn:hover {
+  color: var(--ink);
+}
+
+th[aria-sort="ascending"] .sort-btn::after {
+  content: " ▲";
+}
+
+th[aria-sort="descending"] .sort-btn::after {
+  content: " ▼";
 }
 
 .items-table td {
@@ -926,12 +965,14 @@
   }
 
   .admin-header {
+    flex-wrap: wrap;
     height: auto;
     padding: 16px;
-    gap: 12px;
+    gap: 8px;
   }
 
   .admin-title {
+    flex-basis: 100%;
     font-size: 20px;
   }
 

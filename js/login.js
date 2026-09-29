@@ -1,14 +1,12 @@
-/*
- * Admin login (front-end prototype).
- *
- * The credentials are checked in the browser, so this only gates the demo UI;
- * it is not real security. The full system checks them on the server.
- */
+/* Admin login form. */
 (function () {
   "use strict";
 
-  var SESSION_KEY = "sathi-cafe-admin";
-  var DEMO_USERS = { admin: "sathi123" };
+  // Already logged in (e.g. coming back from the customer menu): skip the form.
+  if (SathiAuth.user()) {
+    window.location.replace("index.html");
+    return;
+  }
 
   var form = document.getElementById("login-form");
   var error = document.getElementById("login-error");
@@ -18,7 +16,7 @@
     error.hidden = false;
   }
 
-  form.addEventListener("submit", function (event) {
+  form.addEventListener("submit", async function (event) {
     event.preventDefault();
     var username = form.username.value.trim();
     var password = form.password.value;
@@ -27,17 +25,11 @@
       showError("Enter both your username and password.");
       return;
     }
-    if (DEMO_USERS[username] !== password) {
+    if (!(await SathiAuth.login(username, password))) {
       showError("Incorrect username or password.");
       form.password.value = "";
       form.password.focus();
       return;
-    }
-
-    try {
-      window.sessionStorage.setItem(SESSION_KEY, username);
-    } catch (err) {
-      // Storage blocked: the panel will send the user back here.
     }
     window.location.href = "index.html";
   });

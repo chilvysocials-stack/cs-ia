@@ -9,13 +9,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="../css/base.css" />
     <link rel="stylesheet" href="../css/admin.css" />
+    <script src="../js/auth.js"></script>
     <script>
-      // Bounce to the login screen before anything renders.
-      try {
-        if (!sessionStorage.getItem("sathi-cafe-admin")) location.replace("login.html");
-      } catch (err) {
-        location.replace("login.html");
-      }
+      // Not logged in: go to the login screen before anything renders.
+      if (!SathiAuth.user()) location.replace("login.html");
     </script>
   </head>
   <body class="admin-page">
@@ -36,7 +33,7 @@
           </svg>
           Menu
         </a>
-        <a class="sidebar-link" href="../index.html" target="_blank" rel="noopener">
+        <a class="sidebar-link" href="../index.html">
           <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
           </svg>
@@ -61,6 +58,12 @@
     <div class="admin-main">
       <header class="admin-header">
         <h1 class="admin-title">Menu Management System</h1>
+        <button class="btn btn-light" id="undo" type="button" disabled>↶ Undo</button>
+        <button class="btn btn-light" id="export-csv" type="button">Export CSV</button>
+        <label class="btn btn-light">
+          Import CSV
+          <input class="visually-hidden" id="import-csv" type="file" accept=".csv,text/csv" />
+        </label>
         <button class="btn btn-accent" id="add-item" type="button">+&nbsp;&nbsp;Add Item</button>
       </header>
 
@@ -84,11 +87,11 @@
                 <thead>
                   <tr>
                     <th class="col-icon"><span class="visually-hidden">Icon</span></th>
-                    <th class="col-item">ITEM</th>
-                    <th class="col-category">CATEGORY</th>
-                    <th class="col-price">PRICE</th>
-                    <th class="col-stock">STOCK</th>
-                    <th class="col-active">ACTIVE</th>
+                    <th class="col-item"><button class="sort-btn" data-sort="name">ITEM</button></th>
+                    <th class="col-category"><button class="sort-btn" data-sort="category">CATEGORY</button></th>
+                    <th class="col-price"><button class="sort-btn" data-sort="price">PRICE</button></th>
+                    <th class="col-stock"><button class="sort-btn" data-sort="inStock">STOCK</button></th>
+                    <th class="col-active"><button class="sort-btn" data-sort="active">ACTIVE</button></th>
                     <th class="col-edit"><span class="visually-hidden">Edit</span></th>
                   </tr>
                 </thead>

@@ -1,8 +1,7 @@
-/* Admin menu management: list, filter, add, edit, toggle and delete items. */
+/* Admin menu management: list, filter, sort, add, edit, toggle, delete, undo and CSV import/export. */
 (function () {
   "use strict";
 
-  var SESSION_KEY = "sathi-cafe-admin";
   var store = window.SathiStore;
 
   var CATEGORY_ICONS = {
@@ -38,6 +37,8 @@
     query: "",
     selectedId: null, // item being edited
     isNew: false, // editor holds a brand-new, unsaved item
+    sortKey: null, // column the table is sorted by (null = menu order)
+    sortDir: 1, // 1 = ascending, -1 = descending
   };
 
   var els = {
@@ -58,29 +59,22 @@
     logout: document.getElementById("logout"),
     adminName: document.getElementById("admin-name"),
     adminAvatar: document.getElementById("admin-avatar"),
+    undo: document.getElementById("undo"),
+    exportCsv: document.getElementById("export-csv"),
+    importCsv: document.getElementById("import-csv"),
+    sortButtons: document.querySelectorAll(".sort-btn"),
   };
 
   var fields = els.form.elements;
 
   /* ---------- Session ---------- */
 
-  var username = null;
-  try {
-    username = window.sessionStorage.getItem(SESSION_KEY);
-  } catch (err) {
-    username = null;
-  }
-  if (username) {
-    els.adminName.textContent = username;
-    els.adminAvatar.textContent = username.charAt(0);
-  }
+  var username = SathiAuth.user();
+  els.adminName.textContent = username;
+  els.adminAvatar.textContent = username.charAt(0);
 
   els.logout.addEventListener("click", function () {
-    try {
-      window.sessionStorage.removeItem(SESSION_KEY);
-    } catch (err) {
-      // Nothing to clear.
-    }
+    SathiAuth.logout();
     window.location.href = "login.html";
   });
 
@@ -103,10 +97,54 @@
 
   function filteredItems() {
     var q = state.query.toLowerCase();
-    return store.all().filter(function (item) {
+    var items = store.all().filter(function (item) {
       if (state.category !== "all" && item.category !== state.category) return false;
       if (!q) return true;
       return (item.name + " " + item.description + " " + item.subcategory).toLowerCase().indexOf(q) !== -1;
+    });
+    return state.sortKey ? mergeSort(items, compareItems) : items;
+  }
+
+  /* ---------- Sorting (merge sort) ---------- */
+
+  // Value an item is sorted by for the chosen column.
+  function sortValue(item) {
+    if (state.sortKey === "category") return categoryLabel(item.category);
+    if (state.sortKey === "name") return item.name.toLowerCase();
+    return Number(item[state.sortKey]); // price, or true/false as 1/0
+  }
+
+  function compareItems(a, b) {
+    var x = sortValue(a);
+    var y = sortValue(b);
+    return (x < y ? -1 : x > y ? 1 : 0) * state.sortDir;
+  }
+
+  // Split the list in half, sort each half, then merge the two sorted halves.
+  // O(n log n), and stable: equal items keep their original order.
+  function mergeSort(list, compare) {
+    if (list.length <= 1) return list;
+    var middle = Math.floor(list.length / 2);
+    var left = mergeSort(list.slice(0, middle), compare);
+    var right = mergeSort(list.slice(middle), compare);
+
+    var merged = [];
+    var i = 0;
+    var j = 0;
+    while (i < left.length && j < right.length) {
+      merged.push(compare(left[i], right[j]) <= 0 ? left[i++] : right[j++]);
+    }
+    return merged.concat(left.slice(i), right.slice(j));
+  }
+
+  function renderSortHeaders() {
+    els.sortButtons.forEach(function (button) {
+      var th = button.parentElement;
+      if (button.dataset.sort === state.sortKey) {
+        th.setAttribute("aria-sort", state.sortDir === 1 ? "ascending" : "descending");
+      } else {
+        th.removeAttribute("aria-sort");
+      }
     });
   }
 
@@ -122,6 +160,8 @@
   function renderTable() {
     var items = filteredItems();
     els.tbody.textContent = "";
+    els.undo.disabled = !store.canUndo();
+    renderSortHeaders();
 
     items.forEach(function (item) {
       var tr = document.createElement("tr");
@@ -361,6 +401,125 @@
     var next = remaining[Math.min(index, remaining.length - 1)];
     select(next ? next.id : null);
     flash(name + " deleted.");
+  });
+
+  // Clicking a column header sorts by it; clicking it again flips the order.
+  els.sortButtons.forEach(function (button) {
+    button.addEventListener("click", function () {
+      var key = button.dataset.sort;
+      state.sortDir = state.sortKey === key ? -state.sortDir : 1;
+      state.sortKey = key;
+      renderTable();
+    });
+  });
+
+  /* ---------- Undo ---------- */
+
+  els.undo.addEventListener("click", function () {
+    if (!store.undo()) return;
+    if (!store.get(state.selectedId)) state.selectedId = store.all().length ? store.all()[0].id : null;
+    state.isNew = false;
+    renderTable();
+    renderEditor();
+    flash("Last change undone.");
+  });
+
+  /* ---------- CSV export / import ---------- */
+
+  var CSV_COLUMNS = ["name", "description", "price", "category", "subcategory", "type", "inStock", "active", "popular"];
+
+  function toCsvField(value) {
+    return '"' + String(value).replace(/"/g, '""') + '"'; // quotes inside a field are doubled
+  }
+
+  els.exportCsv.addEventListener("click", function () {
+    var lines = [CSV_COLUMNS.join(",")].concat(
+      store.all().map(function (item) {
+        return CSV_COLUMNS.map(function (col) {
+          return toCsvField(item[col]);
+        }).join(",");
+      })
+    );
+    var link = document.createElement("a");
+    link.href = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+    link.download = "sathi-cafe-menu.csv";
+    link.click();
+    URL.revokeObjectURL(link.href);
+  });
+
+  // Split one CSV line into fields, handling "quoted, fields" and "" escapes.
+  function parseCsvLine(line) {
+    var fields = [];
+    var field = "";
+    var quoted = false;
+    for (var i = 0; i < line.length; i++) {
+      var ch = line[i];
+      if (quoted && ch === '"' && line[i + 1] === '"') {
+        field += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = !quoted;
+      } else if (ch === "," && !quoted) {
+        fields.push(field);
+        field = "";
+      } else {
+        field += ch;
+      }
+    }
+    fields.push(field);
+    return fields;
+  }
+
+  // Turn CSV text into menu items. Returns { items } or { error }.
+  function readCsv(text) {
+    var lines = text.split(/\r?\n/).filter(function (line) {
+      return line.trim() !== "";
+    });
+    if (!lines.length || parseCsvLine(lines[0]).join(",") !== CSV_COLUMNS.join(",")) {
+      return { error: "The first line must be the header: " + CSV_COLUMNS.join(",") };
+    }
+
+    var items = [];
+    for (var row = 1; row < lines.length; row++) {
+      var values = parseCsvLine(lines[row]);
+      var item = {};
+      CSV_COLUMNS.forEach(function (col, i) {
+        item[col] = (values[i] || "").trim();
+      });
+      item.price = Number(item.price);
+      item.inStock = item.inStock === "true";
+      item.active = item.active === "true";
+      item.popular = item.popular === "true";
+
+      var where = "Row " + (row + 1) + ": ";
+      if (values.length !== CSV_COLUMNS.length) return { error: where + "expected " + CSV_COLUMNS.length + " columns." };
+      if (!item.name) return { error: where + "name is empty." };
+      if (!Number.isInteger(item.price) || item.price <= 0) return { error: where + "price must be a whole number above 0." };
+      if (!store.getCategory(item.category)) return { error: where + 'unknown category "' + item.category + '".' };
+      if (item.type !== "veg" && item.type !== "nonveg") return { error: where + 'type must be "veg" or "nonveg".' };
+      items.push(item);
+    }
+    return items.length ? { items: items } : { error: "The file has no menu items." };
+  }
+
+  els.importCsv.addEventListener("change", async function () {
+    var file = els.importCsv.files[0];
+    els.importCsv.value = ""; // allow picking the same file again
+    if (!file) return;
+
+    var result = readCsv(await file.text());
+    if (result.error) {
+      window.alert("Import cancelled. " + result.error);
+      return;
+    }
+    if (!window.confirm("Replace the whole menu with " + result.items.length + " items from " + file.name + "?")) return;
+
+    store.replaceAll(result.items);
+    state.selectedId = store.all()[0].id;
+    state.isNew = false;
+    renderTable();
+    renderEditor();
+    flash("Imported " + result.items.length + " items. Use Undo to go back.");
   });
 
   /* ---------- Start ---------- */

@@ -142,6 +142,15 @@
 
   var items = load();
 
+  // Undo history: a stack of earlier versions of the menu (newest on top).
+  var history = [];
+  var HISTORY_LIMIT = 20;
+
+  function remember() {
+    history.push(JSON.stringify(items));
+    if (history.length > HISTORY_LIMIT) history.shift(); // drop the oldest
+  }
+
   function nextId() {
     return items.reduce(function (max, item) {
       return Math.max(max, item.id);
@@ -168,6 +177,7 @@
     },
 
     create: function (data) {
+      remember();
       var item = Object.assign({ id: nextId(), popular: false, subcategory: "" }, data);
       items.push(item);
       save(items);
@@ -177,21 +187,38 @@
     update: function (id, changes) {
       var item = this.get(id);
       if (!item) return null;
+      remember();
       Object.assign(item, changes);
       save(items);
       return item;
     },
 
     remove: function (id) {
+      remember();
       items = items.filter(function (item) {
         return item.id !== id;
       });
       save(items);
     },
 
-    reset: function () {
-      items = seedItems();
+    // Replace the whole menu (CSV import). New ids are given out in order.
+    replaceAll: function (newItems) {
+      remember();
+      items = newItems.map(function (item, index) {
+        return Object.assign({}, item, { id: index + 1 });
+      });
       save(items);
+    },
+
+    canUndo: function () {
+      return history.length > 0;
+    },
+
+    undo: function () {
+      if (!history.length) return false;
+      items = JSON.parse(history.pop());
+      save(items);
+      return true;
     },
   };
 })();

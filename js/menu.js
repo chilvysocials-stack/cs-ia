@@ -311,10 +311,5 @@
     render();
   });
 
-  // Admin changes made in another tab show up without a reload.
-  window.addEventListener("storage", function () {
-    window.location.reload();
-  });
-
   render();
 })();
