@@ -1,4 +1,4 @@
-/* Admin menu management: list, filter, sort, add, edit, toggle, delete, undo and CSV import/export. */
+/* Admin panel: menu table, editor, undo, sorting, CSV, bulk prices, stats and activity log. */
 (function () {
   "use strict";
 
@@ -63,6 +63,12 @@
     exportCsv: document.getElementById("export-csv"),
     importCsv: document.getElementById("import-csv"),
     sortButtons: document.querySelectorAll(".sort-btn"),
+    statTotal: document.getElementById("stat-total"),
+    statHidden: document.getElementById("stat-hidden"),
+    statOut: document.getElementById("stat-out"),
+    statAverage: document.getElementById("stat-average"),
+    activity: document.getElementById("activity"),
+    priceForm: document.getElementById("price-form"),
   };
 
   var fields = els.form.elements;
@@ -198,11 +204,13 @@
   /* ---------- Editor ---------- */
 
   function fillCategoryOptions() {
-    store.categories.forEach(function (cat) {
-      var option = document.createElement("option");
-      option.value = cat.id;
-      option.textContent = cat.label;
-      fields.category.appendChild(option);
+    [fields.category, els.priceForm.category].forEach(function (select) {
+      store.categories.forEach(function (cat) {
+        var option = document.createElement("option");
+        option.value = cat.id;
+        option.textContent = cat.label;
+        select.appendChild(option);
+      });
     });
   }
 
@@ -301,6 +309,7 @@
     try {
       await task();
       flash(message);
+      refreshDashboard();
       return true;
     } catch (err) {
       flash(err.message, true);
@@ -536,6 +545,71 @@
     renderEditor();
   });
 
+  /* ---------- Bulk price change ---------- */
+
+  els.priceForm.addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var category = els.priceForm.category.value;
+    var percent = Number(els.priceForm.percent.value);
+    if (!Number.isInteger(percent) || percent === 0 || percent < -50 || percent > 100) {
+      flash("Enter a whole-number percentage from -50 to 100 (not 0).", true);
+      return;
+    }
+    var label = category === "all" ? "all items" : categoryLabel(category);
+    if (!window.confirm((percent > 0 ? "Raise" : "Lower") + " prices of " + label + " by " + Math.abs(percent) + "%?")) return;
+
+    if (!(await save(function () {
+      return store.adjustPrices(category, percent);
+    }, "Prices updated. Use Undo to go back."))) return;
+    els.priceForm.percent.value = "";
+    renderTable();
+    renderEditor();
+  });
+
+  /* ---------- Dashboard: stats and activity log ---------- */
+
+  function renderStats(stats) {
+    els.statTotal.textContent = stats.total;
+    els.statHidden.textContent = stats.hidden;
+    els.statOut.textContent = stats.outOfStock;
+    els.statAverage.textContent = formatPrice(stats.averagePrice);
+  }
+
+  function renderActivity(entries) {
+    els.activity.textContent = "";
+    if (!entries.length) {
+      var empty = document.createElement("li");
+      empty.textContent = "No changes yet.";
+      els.activity.appendChild(empty);
+    }
+    entries.forEach(function (entry) {
+      var li = document.createElement("li");
+      var time = document.createElement("span");
+      time.className = "activity-time";
+      time.textContent = new Date(entry.time.replace(" ", "T")).toLocaleString([], {
+        day: "numeric",
+        month: "short",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      var text = document.createElement("span");
+      text.textContent = entry.admin + " · " + entry.action + (entry.details ? ": " + entry.details : "");
+      li.append(time, text);
+      els.activity.appendChild(li);
+    });
+  }
+
+  // Reload the numbers and the log from the server (after every change).
+  async function refreshDashboard() {
+    try {
+      var results = await Promise.all([store.stats(), store.activity()]);
+      renderStats(results[0]);
+      renderActivity(results[1]);
+    } catch (err) {
+      // The rest of the panel still works; the dashboard just isn't updated.
+    }
+  }
+
   /* ---------- Start ---------- */
 
   (async function start() {
@@ -549,6 +623,7 @@
       els.adminName.textContent = username;
       els.adminAvatar.textContent = username.charAt(0);
       await store.load(true);
+      refreshDashboard();
     } catch (err) {
       els.tableEmpty.textContent = err.message;
     }

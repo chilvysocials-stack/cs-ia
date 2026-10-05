@@ -19,10 +19,13 @@ If your MySQL user or password isn't XAMPP's default (`root` with no password), 
 
 - **Customer menu:** category chips, a sub-category sidebar, search, and a phone layout below 640px wide. Only items switched on in the admin panel are shown.
 - **Admin panel:** add, edit and delete items; show or hide an item; mark it in or out of stock. Every change is saved to MySQL, so all customers see it straight away.
-- **Undo:** a stack of the last 20 changes.
+- **Dashboard:** total items, hidden items, out-of-stock items and average price, calculated by MySQL (`COUNT`, `SUM`, `AVG`).
+- **Bulk price change:** raise or lower a category's prices by a percentage in one SQL `UPDATE`.
+- **Activity log:** every change is saved in the `activity_log` table with who made it and when.
+- **Undo:** a stack of the last 20 changes, including bulk price changes and imports.
 - **Sorting:** click a column header. It uses a hand-written merge sort.
 - **CSV export and import:** imports are validated row by row and saved in one database transaction.
-- **Secure login:** passwords are stored as bcrypt hashes (`password_hash` / `password_verify`). A PHP session keeps the admin logged in for 8 hours.
+- **Secure login:** passwords are stored as bcrypt hashes (`password_hash` / `password_verify`). A PHP session keeps the admin logged in for 8 hours. After 5 wrong passwords, login is locked for 5 minutes.
 - **Server-side checks:** the API validates every item and uses prepared statements, which protect against SQL injection.
 
 ## API (`api/api.php?action=…`)
@@ -34,4 +37,6 @@ If your MySQL user or password isn't XAMPP's default (`root` with no password), 
 | `all` | admin | every item, including hidden ones |
 | `create`, `update`, `delete` | admin | change one item |
 | `replace` | admin | replace the whole menu (CSV import, undo) |
+| `adjust_prices` | admin | change prices by a percentage |
+| `stats`, `activity` | admin | dashboard numbers, recent changes |
 | `logout` | admin | end the session |

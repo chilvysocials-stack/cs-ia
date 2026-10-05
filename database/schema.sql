@@ -3,6 +3,7 @@
 CREATE DATABASE IF NOT EXISTS sathi_cafe CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE sathi_cafe;
 
+DROP TABLE IF EXISTS activity_log;
 DROP TABLE IF EXISTS menu_items;
 DROP TABLE IF EXISTS admins;
 
@@ -23,6 +24,15 @@ CREATE TABLE menu_items (
   in_stock BOOLEAN NOT NULL DEFAULT TRUE,
   active BOOLEAN NOT NULL DEFAULT TRUE, -- shown on the customer menu
   popular BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+-- Every change an admin makes, newest last (shown in the admin panel).
+CREATE TABLE activity_log (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  admin VARCHAR(50) NOT NULL,
+  action VARCHAR(30) NOT NULL,
+  details VARCHAR(200) NOT NULL DEFAULT '',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Login: admin / sathi123

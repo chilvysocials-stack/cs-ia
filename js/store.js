@@ -122,7 +122,20 @@
 
     // Replace the whole menu (CSV import).
     replaceAll: function (newItems) {
-      return change("replace", { items: newItems });
+      return change("replace", { items: newItems, reason: "import" });
+    },
+
+    // Raise or lower prices by a percentage ("all" or one category id).
+    adjustPrices: function (category, percent) {
+      return change("adjust_prices", { category: category, percent: percent }); // resolves to { changed }
+    },
+
+    stats: function () {
+      return api("stats");
+    },
+
+    activity: function () {
+      return api("activity");
     },
 
     canUndo: function () {
@@ -131,7 +144,7 @@
 
     undo: async function () {
       if (!history.length) return false;
-      await api("replace", { items: history[history.length - 1] });
+      await api("replace", { items: history[history.length - 1], reason: "undo" });
       history.pop(); // only forget it once the server has restored it
       items = await api(loadAction);
       return true;

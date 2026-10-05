@@ -28,12 +28,6 @@
     return n + " " + word + (n === 1 ? "" : "s");
   }
 
-  function visibleItems() {
-    return store.all().filter(function (item) {
-      return item.active;
-    });
-  }
-
   function matchesQuery(item, query) {
     var category = store.getCategory(item.category);
     var haystack = [item.name, item.description, item.subcategory, category ? category.label : ""]
@@ -43,7 +37,7 @@
   }
 
   function currentItems() {
-    var items = visibleItems();
+    var items = store.all();
 
     if (state.query) {
       var q = state.query.toLowerCase();
@@ -94,7 +88,7 @@
   }
 
   function subnavEntries() {
-    var items = visibleItems();
+    var items = store.all();
 
     if (state.category === "all") {
       var entries = [{ key: null, label: "All", count: items.length }];

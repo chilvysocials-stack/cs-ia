@@ -61,6 +61,13 @@
       </header>
 
       <div class="admin-content">
+        <section class="stats" aria-label="Menu summary">
+          <div class="stat"><p class="stat-value" id="stat-total">–</p><p class="stat-label">Menu items</p></div>
+          <div class="stat"><p class="stat-value" id="stat-hidden">–</p><p class="stat-label">Hidden from menu</p></div>
+          <div class="stat"><p class="stat-value" id="stat-out">–</p><p class="stat-label">Out of stock</p></div>
+          <div class="stat"><p class="stat-value" id="stat-average">–</p><p class="stat-label">Average price</p></div>
+        </section>
+
         <div class="toolbar">
           <nav class="chips admin-chips" id="admin-chips" aria-label="Filter by category"></nav>
           <div class="admin-search">
@@ -74,95 +81,121 @@
         </div>
 
         <div class="workspace">
-          <section class="panel table-panel" aria-label="Menu items">
-            <div class="table-wrap">
-              <table class="items-table">
-                <thead>
-                  <tr>
-                    <th class="col-icon"><span class="visually-hidden">Icon</span></th>
-                    <th class="col-item"><button class="sort-btn" data-sort="name">ITEM</button></th>
-                    <th class="col-category"><button class="sort-btn" data-sort="category">CATEGORY</button></th>
-                    <th class="col-price"><button class="sort-btn" data-sort="price">PRICE</button></th>
-                    <th class="col-stock"><button class="sort-btn" data-sort="inStock">STOCK</button></th>
-                    <th class="col-active"><button class="sort-btn" data-sort="active">ACTIVE</button></th>
-                    <th class="col-edit"><span class="visually-hidden">Edit</span></th>
-                  </tr>
-                </thead>
-                <tbody id="items-body"></tbody>
-              </table>
-              <p class="table-empty" id="table-empty" hidden>No items match this filter.</p>
-            </div>
-          </section>
-
-          <section class="panel editor" id="editor" aria-labelledby="editor-title">
-            <div class="editor-empty" id="editor-empty" hidden>
-              <p>Select an item to edit it, or add a new one.</p>
-            </div>
-
-            <form class="editor-form" id="editor-form" novalidate>
-              <div class="editor-top">
-                <button class="btn btn-danger" id="delete-item" type="button">-&nbsp;Delete item</button>
+          <div class="main-col">
+            <section class="panel table-panel" aria-label="Menu items">
+              <div class="table-wrap">
+                <table class="items-table">
+                  <thead>
+                    <tr>
+                      <th class="col-icon"><span class="visually-hidden">Icon</span></th>
+                      <th class="col-item"><button class="sort-btn" data-sort="name">ITEM</button></th>
+                      <th class="col-category"><button class="sort-btn" data-sort="category">CATEGORY</button></th>
+                      <th class="col-price"><button class="sort-btn" data-sort="price">PRICE</button></th>
+                      <th class="col-stock"><button class="sort-btn" data-sort="inStock">STOCK</button></th>
+                      <th class="col-active"><button class="sort-btn" data-sort="active">ACTIVE</button></th>
+                      <th class="col-edit"><span class="visually-hidden">Edit</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="items-body"></tbody>
+                </table>
+                <p class="table-empty" id="table-empty" hidden>No items match this filter.</p>
               </div>
-              <p class="eyebrow" id="editor-mode">EDITING</p>
-              <h2 class="editor-title" id="editor-title">Item</h2>
+            </section>
 
-              <div class="field">
-                <label for="f-name">Name</label>
-                <input id="f-name" name="name" type="text" required maxlength="60" />
-                <p class="field-error" data-error-for="name"></p>
+            <section class="panel" aria-labelledby="activity-title">
+              <h2 class="panel-title" id="activity-title">Recent activity</h2>
+              <ul class="activity" id="activity"></ul>
+            </section>
+          </div>
+
+          <div class="side-col">
+            <section class="panel editor" id="editor" aria-labelledby="editor-title">
+              <div class="editor-empty" id="editor-empty" hidden>
+                <p>Select an item to edit it, or add a new one.</p>
               </div>
 
-              <div class="field-row">
-                <div class="field">
-                  <label for="f-price">Price (Rs.)</label>
-                  <input id="f-price" name="price" type="number" inputmode="numeric" min="1" step="1" required />
-                  <p class="field-error" data-error-for="price"></p>
+              <form class="editor-form" id="editor-form" novalidate>
+                <div class="editor-top">
+                  <button class="btn btn-danger" id="delete-item" type="button">-&nbsp;Delete item</button>
                 </div>
+                <p class="eyebrow" id="editor-mode">EDITING</p>
+                <h2 class="editor-title" id="editor-title">Item</h2>
+
                 <div class="field">
-                  <label for="f-category">Category</label>
-                  <select id="f-category" name="category"></select>
+                  <label for="f-name">Name</label>
+                  <input id="f-name" name="name" type="text" required maxlength="60" />
+                  <p class="field-error" data-error-for="name"></p>
                 </div>
-              </div>
 
-              <div class="field">
-                <label for="f-description">Description</label>
-                <textarea id="f-description" name="description" rows="2" maxlength="160"></textarea>
-              </div>
+                <div class="field-row">
+                  <div class="field">
+                    <label for="f-price">Price (Rs.)</label>
+                    <input id="f-price" name="price" type="number" inputmode="numeric" min="1" step="1" required />
+                    <p class="field-error" data-error-for="price"></p>
+                  </div>
+                  <div class="field">
+                    <label for="f-category">Category</label>
+                    <select id="f-category" name="category"></select>
+                  </div>
+                </div>
 
-              <div class="field-row">
                 <div class="field">
-                  <label for="f-type">Type</label>
-                  <select id="f-type" name="type">
-                    <option value="veg">Veg</option>
-                    <option value="nonveg">Non-veg</option>
+                  <label for="f-description">Description</label>
+                  <textarea id="f-description" name="description" rows="2" maxlength="160"></textarea>
+                </div>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="f-type">Type</label>
+                    <select id="f-type" name="type">
+                      <option value="veg">Veg</option>
+                      <option value="nonveg">Non-veg</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label for="f-stock">Stock</label>
+                    <select id="f-stock" name="stock">
+                      <option value="in">In stock</option>
+                      <option value="out">Out of stock</option>
+                    </select>
+                  </div>
+                </div>
+
+                <label class="checkbox">
+                  <input id="f-active" name="active" type="checkbox" />
+                  <span class="checkbox-box" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m5 12.5 4.5 4.5L19 7.5" />
+                    </svg>
+                  </span>
+                  Available on menu
+                </label>
+
+                <div class="editor-actions">
+                  <button class="btn btn-outline" id="cancel-edit" type="button">Cancel</button>
+                  <button class="btn btn-primary" type="submit">Save Changes</button>
+                </div>
+                <p class="editor-status" id="editor-status" role="status"></p>
+              </form>
+            </section>
+
+            <section class="panel" aria-labelledby="prices-title">
+              <h2 class="panel-title" id="prices-title">Bulk price change</h2>
+              <form class="price-tool" id="price-form" novalidate>
+                <div class="field">
+                  <label for="p-category">Category</label>
+                  <select id="p-category" name="category">
+                    <option value="all">All categories</option>
                   </select>
                 </div>
                 <div class="field">
-                  <label for="f-stock">Stock</label>
-                  <select id="f-stock" name="stock">
-                    <option value="in">In stock</option>
-                    <option value="out">Out of stock</option>
-                  </select>
+                  <label for="p-percent">Change (%)</label>
+                  <input id="p-percent" name="percent" type="number" step="1" min="-50" max="100" placeholder="e.g. 10 or -5" />
                 </div>
-              </div>
-
-              <label class="checkbox">
-                <input id="f-active" name="active" type="checkbox" />
-                <span class="checkbox-box" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="m5 12.5 4.5 4.5L19 7.5" />
-                  </svg>
-                </span>
-                Available on menu
-              </label>
-
-              <div class="editor-actions">
-                <button class="btn btn-outline" id="cancel-edit" type="button">Cancel</button>
-                <button class="btn btn-primary" type="submit">Save Changes</button>
-              </div>
-              <p class="editor-status" id="editor-status" role="status"></p>
-            </form>
-          </section>
+                <button class="btn btn-primary" type="submit">Apply</button>
+              </form>
+            </section>
+          </div>
         </div>
       </div>
     </div>
