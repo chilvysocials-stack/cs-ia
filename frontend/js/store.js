@@ -1,13 +1,13 @@
 /*
  * Sathi Café — menu data, loaded from and saved to the MySQL database
- * through api/api.php. Reads come from a local copy (`items`); every change
+ * through the Python server (app.py). Reads come from a local copy (`items`); every change
  * is sent to the server and the copy is then reloaded.
  */
 (function () {
   "use strict";
 
-  // api/api.php, worked out from where this script lives (works from / and /admin/).
-  var API = new URL("../api/api.php", document.currentScript.src).href;
+  // The server's /api/ address, worked out from where this script lives (works from / and /admin/).
+  var API = new URL("../api/", document.currentScript.src).href;
 
   var CATEGORIES = [
     {
@@ -57,10 +57,10 @@
     var options = body === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
     var response, data;
     try {
-      response = await fetch(API + "?action=" + action, options);
+      response = await fetch(API + action, options);
       data = await response.json();
     } catch (err) {
-      throw new Error("Can't reach the server. Is XAMPP (Apache and MySQL) running?");
+      throw new Error("Can't reach the server. Is it running (python app.py) and is MySQL started?");
     }
     if (!response.ok) throw new Error(data.error);
     return data;

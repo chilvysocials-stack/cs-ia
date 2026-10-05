@@ -2,18 +2,22 @@
 
 A QR-code café menu with an admin panel, built from the [Sathi Café menu design](https://www.figma.com/design/1OwhPBIAGFC0p5yfKZUXsA/Sathi-Cafe-menu-design?node-id=1040-64).
 
-- **Front end:** HTML, CSS and JavaScript (`index.html`, `admin/`, `css/`, `js/`)
-- **Back end:** PHP (`api/api.php`)
+- **Front end:** HTML, CSS and JavaScript (`frontend/`)
+- **Back end:** Python with Flask (`app.py`, settings in `config.py`)
 - **Database:** MySQL (`database/schema.sql`)
 
-## Run it with XAMPP
+## Run it
 
-1. Install [XAMPP](https://www.apachefriends.org/) and start **Apache** and **MySQL** in the XAMPP Control Panel.
-2. Copy this folder into XAMPP's `htdocs` folder, e.g. `C:\xampp\htdocs\cs-ia`.
-3. Open http://localhost/phpmyadmin, go to **Import**, choose `database/schema.sql` and press **Import**. This creates the `sathi_cafe` database with the menu and the admin account.
-4. Open http://localhost/cs-ia/ for the customer menu. The ⚙ icon opens the admin panel; log in with **admin / sathi123**.
+1. Install [Python 3](https://www.python.org/) and [XAMPP](https://www.apachefriends.org/). Start **MySQL** in the XAMPP Control Panel, plus **Apache** while you use phpMyAdmin in step 2.
+2. Open http://localhost/phpmyadmin, go to **Import**, choose `database/schema.sql` and press **Import**. This creates the `sathi_cafe` database with the menu and the admin account.
+3. In a terminal in this folder, install the Python packages and start the server:
+   ```
+   pip install -r requirements.txt
+   python app.py
+   ```
+4. Open http://localhost:5000 for the customer menu. The ⚙ icon opens the admin panel; log in with **admin / sathi123**.
 
-If your MySQL user or password isn't XAMPP's default (`root` with no password), change it in `api/config.php`.
+If your MySQL user or password isn't XAMPP's default (`root` with no password), change it in `config.py`.
 
 ## Features
 
@@ -25,18 +29,17 @@ If your MySQL user or password isn't XAMPP's default (`root` with no password), 
 - **Undo:** a stack of the last 20 changes, including bulk price changes and imports.
 - **Sorting:** click a column header. It uses a hand-written merge sort.
 - **CSV export and import:** imports are validated row by row and saved in one database transaction.
-- **Secure login:** passwords are stored as bcrypt hashes (`password_hash` / `password_verify`). A PHP session keeps the admin logged in for 8 hours. After 5 wrong passwords, login is locked for 5 minutes.
+- **Secure login:** passwords are stored as salted hashes (`generate_password_hash` / `check_password_hash`). A session cookie keeps the admin logged in for 8 hours. After 5 wrong passwords from the same computer, login is locked for 5 minutes.
 - **Server-side checks:** the API validates every item and uses prepared statements, which protect against SQL injection.
 
-## API (`api/api.php?action=…`)
+## API (`/api/<action>`)
 
 | Action | Who | Does |
 | --- | --- | --- |
 | `list` | anyone | items shown on the menu |
-| `login`, `me` | anyone | log in, check who is logged in |
+| `login`, `me`, `logout` | anyone | log in, check who is logged in, log out |
 | `all` | admin | every item, including hidden ones |
 | `create`, `update`, `delete` | admin | change one item |
 | `replace` | admin | replace the whole menu (CSV import, undo) |
 | `adjust_prices` | admin | change prices by a percentage |
 | `stats`, `activity` | admin | dashboard numbers, recent changes |
-| `logout` | admin | end the session |

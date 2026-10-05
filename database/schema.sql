@@ -10,7 +10,7 @@ DROP TABLE IF EXISTS admins;
 CREATE TABLE admins (
   id INT AUTO_INCREMENT PRIMARY KEY,
   username VARCHAR(50) NOT NULL UNIQUE,
-  password_hash VARCHAR(255) NOT NULL -- bcrypt hash from PHP password_hash(), never the plain password
+  password_hash VARCHAR(255) NOT NULL -- salted hash from werkzeug generate_password_hash(), never the plain password
 );
 
 CREATE TABLE menu_items (
@@ -37,7 +37,7 @@ CREATE TABLE activity_log (
 
 -- Login: admin / sathi123
 INSERT INTO admins (username, password_hash) VALUES
-  ('admin', '$2y$12$T6vYcj3iD/n/Pv0dRPPFHeUxOd0t82B97c2TiffKT6u2Rks6fmTlO');
+  ('admin', 'pbkdf2:sha256:1000000$tSJRLhrjZFhenl7F$abacba4ac4bb877bed34ce9bd099f7d25d75cedbda9d295c204e1954e627507e');
 
 INSERT INTO menu_items (name, description, price, category, subcategory, type, popular) VALUES
   ('Lassi', 'Thick chilled yogurt drink, sweet or salted', 950, 'drinks', 'Lassi', 'veg', TRUE),

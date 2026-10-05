@@ -1,8 +1,8 @@
 /*
  * Admin login, shared by the login page and the admin panel.
  *
- * The server checks the password against a bcrypt hash in MySQL and keeps the
- * admin logged in with a PHP session cookie for 8 hours, across every tab.
+ * The Python server checks the password against a salted hash in MySQL and
+ * keeps the admin logged in with a session cookie for 8 hours, across every tab.
  */
 (function () {
   "use strict";
