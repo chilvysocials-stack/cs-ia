@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dino Game</title>
+<style>
+  body {
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #f7f7f7;
+    font-family: "Courier New", monospace;
+    color: #535353;
+  }
+  canvas {
+    background: #fff;
+    border: 1px solid #ddd;
+    max-width: 100%;
+  }
+  p { margin-top: 12px; }
+</style>
+</head>
+<body>
+<canvas id="game" width="800" height="250"></canvas>
+<p>Press <b>Space</b> to jump</p>
+
+<script>
+  const canvas = document.getElementById("game");
+  const ctx = canvas.getContext("2d");
+
+  const GROUND_Y = 200;   // y position of the ground line
+  const GRAVITY = 0.6;    // how fast the dino falls back down
+  const JUMP_SPEED = 12;  // how strong the jump is
+
+  const dino = {
+    x: 60,
+    y: GROUND_Y,          // bottom of the dino
+    width: 44,
+    height: 47,
+    velocityY: 0,
+    onGround: true
+  };
+
+  let frame = 0;
+
+  // Jump when Space is pressed (only if standing on the ground)
+  document.addEventListener("keydown", (e) => {
+    if (e.code === "Space") {
+      e.preventDefault(); // stop the page from scrolling
+      if (dino.onGround) {
+        dino.velocityY = -JUMP_SPEED;
+        dino.onGround = false;
+      }
+    }
+  });
+
+  function update() {
+    dino.velocityY += GRAVITY;
+    dino.y += dino.velocityY;
+
+    // Land back on the ground
+    if (dino.y >= GROUND_Y) {
+      dino.y = GROUND_Y;
+      dino.velocityY = 0;
+      dino.onGround = true;
+    }
+    frame++;
+  }
+
+  // Draws a blocky dinosaur, like the Chrome one
+  function drawDino() {
+    const left = dino.x;
+    const top = dino.y - dino.height;
+    ctx.fillStyle = "#535353";
+
+    // Head
+    ctx.fillRect(left + 22, top, 22, 16);
+    // Mouth
+    ctx.fillRect(left + 22, top + 16, 14, 4);
+    // Neck and body
+    ctx.fillRect(left + 18, top + 16, 10, 14);
+    ctx.fillRect(left + 4, top + 20, 26, 16);
+    // Tail
+    ctx.fillRect(left, top + 18, 6, 12);
+    // Arm
+    ctx.fillRect(left + 30, top + 24, 6, 3);
+
+    // Legs: alternate while running on the ground, stay still in the air
+    const step = dino.onGround ? Math.floor(frame / 6) % 2 : -1;
+    const leftLeg = step === 0 ? 6 : 11;
+    const rightLeg = step === 1 ? 6 : 11;
+    ctx.fillRect(left + 8, top + 36, 5, leftLeg);
+    ctx.fillRect(left + 20, top + 36, 5, rightLeg);
+
+    // Eye
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(left + 26, top + 3, 4, 4);
+  }
+
+  function drawGround() {
+    ctx.strokeStyle = "#535353";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, GROUND_Y);
+    ctx.lineTo(canvas.width, GROUND_Y);
+    ctx.stroke();
+
+    // Little bumps of dirt that scroll by
+    ctx.fillStyle = "#535353";
+    for (let i = 0; i < 20; i++) {
+      const x = (i * 97 - frame * 4) % canvas.width;
+      const xx = x < 0 ? x + canvas.width : x;
+      ctx.fillRect(xx, GROUND_Y + 6 + (i % 3) * 5, 3 + (i % 2) * 3, 2);
+    }
+  }
+
+  function loop() {
+    update();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGround();
+    drawDino();
+    requestAnimationFrame(loop);
+  }
+
+  loop();
+</script>
+</body>
+</html>
