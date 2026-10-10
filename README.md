@@ -43,3 +43,7 @@ If your MySQL user or password isn't XAMPP's default (`root` with no password), 
 | `replace` | admin | replace the whole menu (CSV import, undo) |
 | `adjust_prices` | admin | change prices by a percentage |
 | `stats`, `activity` | admin | dashboard numbers, recent changes |
+
+## Bonus: Dino Dash
+
+`game/index.html` is a small endless-runner game inspired by Chrome's offline dinosaur game. Open the file in any browser; no server needed. Press Space, ↑ or tap to jump, ↓ to duck, and P to pause.
