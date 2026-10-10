@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dino Dash</title>
+<style>
+  :root { --bg: #f7f7f7; --fg: #535353; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: var(--bg); color: var(--fg);
+    font-family: "Courier New", monospace;
+    transition: background .6s, color .6s;
+    user-select: none; -webkit-user-select: none; touch-action: manipulation;
+  }
+  body.night { --bg: #1e1e1e; --fg: #e0e0e0; }
+  h1 { font-size: 1.1rem; letter-spacing: .3em; margin: 0 0 12px; }
+  canvas { width: min(900px, calc(100vw - 32px)); height: auto; display: block; image-rendering: pixelated; }
+  p { font-size: .85rem; opacity: .7; margin: 14px 16px 0; text-align: center; }
+</style>
+</head>
+<body>
+<h1>DINO DASH</h1>
+<canvas id="game" width="900" height="260"></canvas>
+<p>Space / ↑ / tap to jump · ↓ to duck · P to pause</p>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height, GROUND = 220;
+const GRAVITY = 0.6, JUMP = -12;
+
+// Pixel sprites: each string row is drawn with 3px blocks ("#" = filled).
+const PX = 3;
+const SPRITES = {
+  run1: [
+    "          ########",
+    "         ##.#######",
+    "         ##########",
+    "         ##########",
+    "         #####     ",
+    "         ########  ",
+    "#       #####      ",
+    "##    ########     ",
+    "###  ##########    ",
+    "############# #    ",
+    " ###########       ",
+    "  #########        ",
+    "   #######         ",
+    "    ###  ##        ",
+    "    ##             ",
+    "    ###            ",
+  ],
+  run2: [
+    "          ########",
+    "         ##.#######",
+    "         ##########",
+    "         ##########",
+    "         #####     ",
+    "         ########  ",
+    "#       #####      ",
+    "##    ########     ",
+    "###  ##########    ",
+    "############# #    ",
+    " ###########       ",
+    "  #########        ",
+    "   #######         ",
+    "    ##  ###        ",
+    "        ##         ",
+    "        ###        ",
+  ],
+  duck1: [
+    "                    ########",
+    "#        ##########.#######",
+    "###  ######################",
+    "###########################",
+    " ##################        ",
+    "  ##############  ######   ",
+    "   ###  ##                 ",
+    "   ##                      ",
+    "   ###                     ",
+  ],
+  duck2: [
+    "                    ########",
+    "#        ##########.#######",
+    "###  ######################",
+    "###########################",
+    " ##################        ",
+    "  ##############  ######   ",
+    "    ##  ###                ",
+    "        ##                 ",
+    "        ###                ",
+  ],
+  dead: [
+    "          ########",
+    "         ##X#######",
+    "         #XXX######",
+    "         ##X#######",
+    "         #####     ",
+    "         ########  ",
+    "#       #####      ",
+    "##    ########     ",
+    "###  ##########    ",
+    "############# #    ",
+    " ###########       ",
+    "  #########        ",
+    "   #######         ",
+    "    ###  ###       ",
+    "    ##    ##       ",
+    "    ###   ###      ",
+  ],
+  bird1: [
+    "     #          ",
+    "     ##         ",
+    "  #  ###        ",
+    " ### ####       ",
+    "################",
+    "     ########## ",
+    "      #######   ",
+  ],
+  bird2: [
+    "  #             ",
+    " ###            ",
+    "################",
+    "     ########## ",
+    "      #######   ",
+    "      ####      ",
+    "      ##        ",
+    "      #         ",
+  ],
+  cactusSmall: [
+    "  ##  ",
+    " #### ",
+    " #### #",
+    "# ######",
+    "# #### #",
+    "###### #",
+    " #######",
+    " ####   ",
+    " ####   ",
+    " ####   ",
+    " ####   ",
+    " ####   ",
+  ],
+  cactusBig: [
+    "   ###   ",
+    "  #####  ",
+    "  #####  ",
+    "  ##### #",
+    "# ##### #",
+    "# ##### #",
+    "# ##### #",
+    "# #######",
+    "#######  ",
+    " ######  ",
+    "  #####  ",
+    "  #####  ",
+    "  #####  ",
+    "  #####  ",
+    "  #####  ",
+    "  #####  ",
+  ],
+};
+
+function spriteSize(s) {
+  return { w: Math.max(...s.map(r => r.length)) * PX, h: s.length * PX };
+}
+
+function drawSprite(s, x, y, color) {
+  for (let r = 0; r < s.length; r++) {
+    for (let c = 0; c < s[r].length; c++) {
+      const ch = s[r][c];
+      if (ch === " ") continue;
+      ctx.fillStyle = ch === "#" ? color : colors.bg;
+      ctx.fillRect(Math.round(x + c * PX), Math.round(y + r * PX), PX, PX);
+    }
+  }
+}
+
+let colors = { fg: "#535353", bg: "#f7f7f7" };
+function getFg() { return getComputedStyle(document.body).getPropertyValue("--fg").trim(); }
+function getBg() { return getComputedStyle(document.body).getPropertyValue("--bg").trim(); }
+
+// --- Game state ---
+let state, hiScore = 0;
+try { hiScore = Number(localStorage.getItem("dinoDashHi")) || 0; } catch (e) {}
+
+function reset() {
+  state = {
+    mode: state ? "playing" : "ready", // ready | playing | paused | over
+    speed: 6,
+    score: 0,
+    frame: 0,
+    groundX: 0,
+    nextSpawn: 60,
+    obstacles: [],
+    clouds: [{ x: 300, y: 50 }, { x: 650, y: 80 }],
+    bumps: Array.from({ length: 30 }, () => ({ x: Math.random() * W, w: 2 + Math.random() * 6 })),
+    night: false,
+    flash: 0,
+    dino: { x: 50, y: GROUND, vy: 0, ducking: false, onGround: true },
+  };
+  document.body.classList.remove("night");
+}
+reset();
+
+// --- Input ---
+const keys = { down: false };
+function jump() {
+  if (state.mode === "ready") { state.mode = "playing"; }
+  if (state.mode === "over") { if (state.frame > 30) reset(); return; }
+  if (state.mode !== "playing") return;
+  const d = state.dino;
+  if (d.onGround && !keys.down) { d.vy = JUMP; d.onGround = false; }
+}
+function jumpRelease() {
+  // Short hop when the jump key is released early
+  const d = state.dino;
+  if (!d.onGround && d.vy < -5) d.vy = -5;
+}
+
+addEventListener("keydown", e => {
+  if (["Space", "ArrowUp", "KeyW"].includes(e.code)) { e.preventDefault(); if (!e.repeat) jump(); }
+  if (["ArrowDown", "KeyS"].includes(e.code)) { e.preventDefault(); keys.down = true; }
+  if (e.code === "KeyP" && (state.mode === "playing" || state.mode === "paused")) {
+    state.mode = state.mode === "paused" ? "playing" : "paused";
+  }
+});
+addEventListener("keyup", e => {
+  if (["Space", "ArrowUp", "KeyW"].includes(e.code)) jumpRelease();
+  if (["ArrowDown", "KeyS"].includes(e.code)) keys.down = false;
+});
+
+// Touch: tap top 2/3 to jump, bottom third to duck
+canvas.addEventListener("pointerdown", e => {
+  const rect = canvas.getBoundingClientRect();
+  const y = (e.clientY - rect.top) / rect.height;
+  if (y > 0.75 && state.mode === "playing") keys.down = true; else jump();
+});
+addEventListener("pointerup", () => { keys.down = false; jumpRelease(); });
+
+// --- Obstacles ---
+function spawnObstacle() {
+  const r = Math.random();
+  if (state.score > 300 && r < 0.25) {
+    const heights = [GROUND - 25, GROUND - 55, GROUND - 85];
+    const s = spriteSize(SPRITES.bird1);
+    state.obstacles.push({ type: "bird", x: W, y: heights[Math.floor(Math.random() * 3)] - s.h, w: s.w, h: s.h });
+  } else {
+    const big = Math.random() < 0.4;
+    const sprite = big ? SPRITES.cactusBig : SPRITES.cactusSmall;
+    const s = spriteSize(sprite);
+    const count = 1 + Math.floor(Math.random() * (state.speed > 9 ? 3 : 2));
+    for (let i = 0; i < count; i++) {
+      state.obstacles.push({ type: "cactus", sprite, x: W + i * (s.w + 2), y: GROUND - s.h, w: s.w, h: s.h });
+    }
+  }
+  const minGap = 40 + 300 / state.speed;
+  state.nextSpawn = minGap + Math.random() * 60;
+}
+
+function dinoBox() {
+  const d = state.dino;
+  const sprite = d.ducking ? SPRITES.duck1 : SPRITES.run1;
+  const s = spriteSize(sprite);
+  // Shrink hitbox a bit to be forgiving
+  return { x: d.x + 6, y: d.y - s.h + 4, w: s.w - 14, h: s.h - 8 };
+}
+
+function hits(a, b) {
+  return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+}
+
+// --- Update ---
+function update() {
+  state.frame++;
+  if (state.mode !== "playing") return;
+
+  const d = state.dino;
+  d.ducking = keys.down && d.onGround;
+  if (keys.down && !d.onGround) d.vy += GRAVITY * 1.5; // fast fall
+  d.vy += GRAVITY;
+  d.y += d.vy;
+  if (d.y >= GROUND) { d.y = GROUND; d.vy = 0; d.onGround = true; }
+
+  state.speed = Math.min(15, state.speed + 0.002);
+  state.score += state.speed * 0.025;
+  state.groundX = (state.groundX - state.speed) % W;
+
+  const s = Math.floor(state.score);
+  if (s > 0 && s % 100 === 0 && state.lastMilestone !== s) { state.lastMilestone = s; state.flash = 40; }
+  const night = Math.floor(s / 700) % 2 === 1;
+  if (night !== state.night) { state.night = night; document.body.classList.toggle("night", night); }
+
+  for (const b of state.bumps) { b.x -= state.speed; if (b.x < -10) b.x += W + 10; }
+  for (const c of state.clouds) { c.x -= state.speed * 0.15; if (c.x < -60) { c.x = W + Math.random() * 200; c.y = 30 + Math.random() * 80; } }
+
+  if (--state.nextSpawn <= 0) spawnObstacle();
+  for (const o of state.obstacles) o.x -= state.speed + (o.type === "bird" ? 1 : 0);
+  state.obstacles = state.obstacles.filter(o => o.x + o.w > 0);
+
+  const box = dinoBox();
+  for (const o of state.obstacles) {
+    const ob = { x: o.x + 4, y: o.y + 4, w: o.w - 8, h: o.h - 6 };
+    if (hits(box, ob)) {
+      state.mode = "over";
+      state.frame = 0;
+      if (s > hiScore) { hiScore = s; try { localStorage.setItem("dinoDashHi", hiScore); } catch (e) {} }
+      break;
+    }
+  }
+}
+
+// --- Draw ---
+function pad(n) { return String(Math.floor(n)).padStart(5, "0"); }
+
+function draw() {
+  colors = { fg: getFg(), bg: getBg() };
+  const fg = colors.fg;
+  ctx.fillStyle = colors.bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Stars & moon at night
+  if (state.night) {
+    ctx.fillStyle = fg;
+    for (let i = 0; i < 12; i++) ctx.fillRect((i * 137 + 40) % W, (i * 53) % 120 + 10, 2, 2);
+    ctx.beginPath(); ctx.arc(W - 120, 45, 16, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = colors.bg;
+    ctx.beginPath(); ctx.arc(W - 112, 40, 14, 0, Math.PI * 2); ctx.fill();
+  }
+
+  // Clouds
+  ctx.strokeStyle = fg; ctx.globalAlpha = 0.35; ctx.lineWidth = 2;
+  for (const c of state.clouds) {
+    ctx.beginPath();
+    ctx.moveTo(c.x, c.y + 12); ctx.lineTo(c.x + 46, c.y + 12);
+    ctx.arc(c.x + 34, c.y + 6, 7, 0, Math.PI, true);
+    ctx.arc(c.x + 20, c.y + 4, 10, 0, Math.PI, true);
+    ctx.arc(c.x + 8, c.y + 8, 5, 0, Math.PI, true);
+    ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+
+  // Ground
+  ctx.fillStyle = fg;
+  ctx.fillRect(0, GROUND, W, 2);
+  for (const b of state.bumps) ctx.fillRect(b.x, GROUND + 6 + (b.w % 3) * 4, b.w, 2);
+
+  // Obstacles
+  for (const o of state.obstacles) {
+    if (o.type === "bird") {
+      const flap = Math.floor(state.frame / 12) % 2 ? SPRITES.bird1 : SPRITES.bird2;
+      drawSprite(flap, o.x, o.y, fg);
+    } else {
+      drawSprite(o.sprite, o.x, o.y, fg);
+    }
+  }
+
+  // Dino
+  const d = state.dino;
+  let sprite;
+  if (state.mode === "over") sprite = SPRITES.dead;
+  else if (d.ducking) sprite = Math.floor(state.frame / 6) % 2 ? SPRITES.duck1 : SPRITES.duck2;
+  else if (!d.onGround || state.mode === "ready") sprite = SPRITES.run1;
+  else sprite = Math.floor(state.frame / 6) % 2 ? SPRITES.run1 : SPRITES.run2;
+  drawSprite(sprite, d.x, d.y - spriteSize(sprite).h, fg);
+
+  // Score (blinks on every 100 points)
+  ctx.fillStyle = fg;
+  ctx.font = "bold 18px 'Courier New', monospace";
+  ctx.textAlign = "right";
+  if (state.flash > 0) state.flash--;
+  const showScore = state.flash === 0 || Math.floor(state.flash / 6) % 2 === 0;
+  ctx.globalAlpha = 0.6;
+  ctx.fillText("HI " + pad(hiScore), W - 110, 30);
+  ctx.globalAlpha = 1;
+  if (showScore) ctx.fillText(pad(state.score), W - 20, 30);
+
+  ctx.textAlign = "center";
+  if (state.mode === "ready") {
+    ctx.fillText("PRESS SPACE OR TAP TO START", W / 2, 110);
+  } else if (state.mode === "paused") {
+    ctx.fillText("PAUSED", W / 2, 110);
+  } else if (state.mode === "over") {
+    ctx.font = "bold 26px 'Courier New', monospace";
+    ctx.fillText("G A M E   O V E R", W / 2, 95);
+    // Restart icon
+    ctx.lineWidth = 4; ctx.strokeStyle = fg;
+    ctx.beginPath(); ctx.arc(W / 2, 135, 14, 0.6, Math.PI * 1.9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(W / 2 + 15, 116); ctx.lineTo(W / 2 + 17, 130); ctx.lineTo(W / 2 + 3, 128); ctx.fill();
+  }
+}
+
+// Fixed 60 updates per second, regardless of screen refresh rate
+let last = performance.now(), acc = 0;
+function loop(now) {
+  acc += Math.min(now - last, 250);
+  last = now;
+  while (acc >= 1000 / 60) { update(); acc -= 1000 / 60; }
+  draw();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
